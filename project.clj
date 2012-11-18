@@ -1,4 +1,4 @@
-(defproject com.offbytwo/clj-itunes "0.1.0"
+(defproject com.offbytwo/clj-itunes "0.1.1-SNAPSHOT"
   :description "A Clojure client for the iTunes search API"
   :url "http://github.com/cosmin/clj-itunes"
   :license {:name "Eclipse Public License"
