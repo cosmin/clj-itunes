@@ -1,7 +1,5 @@
 (ns clj-itunes.client
-  (:import [java.net URL URI URLEncoder])
   (:require [clj-http.client :as http]
-            [clojurewerkz.urly.core :as urly]
             [clojure.string :as string]))
 
 (def ^:dynamic *api-base-url* "http://itunes.apple.com")
@@ -45,7 +43,6 @@
 
 (def +media-formats+ (keys +entities-for-media+))
 
-
 (defn- normalize-explicit [params]
   (if (or (not (contains? params :explicit))
           (string? (:explicit params)))
@@ -58,9 +55,9 @@
    (keyword? val) (name val)
    :default (str val)))
 
-(defn- params-to-query [params]
-  (let [join-kv  #(string/join "=" (map stringify %))]
-    (string/join "&" (map join-kv params))))
+(defn- stringify-params
+  [params]
+  (into {} (map (fn [[k v]] [k (stringify v)])) params))
 
 (defn search
   "Search the iTunes store given a search term and optional parameters.
@@ -78,11 +75,10 @@
   See the full docs at http://bit.ly/bGaJt4"
   ([term] (search term {}))
   ([term params]
-     (let [params (assoc params :term term)
-           search-url (urly/resolve *api-base-url* "/search")
-           query-string (params-to-query (normalize-explicit params))
-           query-url (urly/mutate-query search-url query-string)]
-       (http/get query-url {:as :json}))))
+   (let [params     (assoc params :term term)
+         search-url (str *api-base-url* "/search")]
+     (http/get search-url {:as          :json
+                           :query-params (stringify-params (normalize-explicit params))}))))
 
 (defn lookup
   "Lookup an item in the iTunes store by iTunes IDs, UPC/EAN, and AMG IDs
@@ -100,7 +96,6 @@
   See the full examples at http://bit.ly/KrqhwH"
   ([key value] (lookup key value {}))
   ([key value params]
-     (let [lookup-url (urly/resolve *api-base-url* "/lookup")
-           query-string (params-to-query (assoc params key value))
-           query-url (urly/mutate-query lookup-url query-string)]
-       (http/get query-url {:as :json}))))
+   (let [lookup-url (str *api-base-url* "/lookup")]
+     (http/get lookup-url {:as           :json
+                           :query-params (stringify-params (assoc params key value))}))))
