@@ -24,33 +24,34 @@
       (is (= "foo" (stringify "foo"))))))
 
 (deftest test-params-to-query
-  (let [params-to-query #'client/params-to-query]
+  (let [stringify-params #'client/stringify-params]
     (testing "Handles empty query"
-      (is (= "" (params-to-query {}))))
+      (is (= {} (stringify-params {}))))
     (testing "Handles one key and value"
-      (is (= "key=value" (params-to-query {:key "value"})))
-      (is (= "n=1" (params-to-query {"n" 1}))))
+      (is (= {:key "value"} (stringify-params {:key "value"})))
+      (is (= {"n" "1"} (stringify-params {"n" 1}))))
     (testing "Handles multiple keys and values"
-      (let [result (params-to-query {:a "b", "c" :d})]
-        (is (or (= "a=b&c=d" result)
-                (= "c=d&a=b" result)))))))
+      (let [result (stringify-params {:a "b", "c" :d})]
+        (is (= {:a "b" "c" "d"} result))))))
 
 (deftest test-search
   (with-redefs [http/get (fn [url & [req]] [url req])]
     (testing "Handles no params"
-      (let [[url _] (client/search "Foo")]
-        (is (= "http://itunes.apple.com/search?term=Foo" url))))
+      (let [[url req] (client/search "Foo")]
+        (is (= "http://itunes.apple.com/search" url))
+        (is {:term "Foo"} (:query-params req))))
     (testing "Handles params"
-      (let [[url _] (client/search "Foo" {:media :ebook})]
-        (is (or (= "http://itunes.apple.com/search?term=Foo&media=ebook")
-                (= "http://itunes.apple.com/search?media=ebook&term=Foo")))))))
+      (let [[url req] (client/search "Foo" {:media :ebook})]
+        (is (= "http://itunes.apple.com/search" url)
+            (= {:term "Foo" :media "ebook"} (:query-params req)))))))
 
 (deftest test-lookup
   (with-redefs [http/get (fn [url & [req]] [url req])]
     (testing "Handles no params"
-      (let [[url _] (client/lookup :id "123")]
-        (is (= "http://itunes.apple.com/lookup?id=123" url))))
+      (let [[url req] (client/lookup :id "123")]
+        (is (= "http://itunes.apple.com/lookup" url))
+        (is (= {:id "123"} (:query-params req)))))
     (testing "Handles params"
-      (let [[url _] (client/lookup :amgArtistId 543 {:entity :song})]
-        (is (or (= "http://itunes.apple.com/lookup?amgArtistId=543&entity=song")
-                (= "http://itunes.apple.com/search?entity=song&amgArtistId=543")))))))
+      (let [[url req] (client/lookup :amgArtistId 543 {:entity :song})]
+        (is (= "http://itunes.apple.com/lookup" url))
+        (is (= {:amgArtistId "543" :entity "song"} (:query-params req)))))))
